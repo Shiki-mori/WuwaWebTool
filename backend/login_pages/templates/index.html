@@ -6,7 +6,6 @@
   <title>登录</title>
   <link rel="icon" href="https://web-static.kurobbs.com/resource/prod/icon.ico" type="image/x-icon">
   <script src="https://static.geetest.com/v4/gt4.js"></script>
-  <script src="https://apps.bdimg.com/libs/jquery/1.6.4/jquery.min.js"></script>
   <style>
     body, html {
       margin: 0;
@@ -383,6 +382,17 @@
     "source": "h5",
   };
 
+  function postJson(url, data, extraHeaders) {
+    return fetch(url, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, extraHeaders || {}),
+      body: JSON.stringify(data),
+    }).then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
   const captchaId = "ec4aa4174277d822d73f2442a165a2cd";
   const product = "bind";
 
@@ -397,14 +407,12 @@
         return showToast('请完成验证', 'warning');
       }
       result.captcha_id = captchaId
-      $.ajax({
-        url: '{{ server_url }}/api/login/send-code',
-        type: 'POST',
-        data: {"mobile": phoneInput.value, "geeTestData": JSON.stringify(result)},
-        headers: headers,
-        success: res => showToast(res.success ? '验证码已发送' : '验证码发送失败 : ' + res.msg, res.success ? 'success' : 'error'),
-        error: () => showToast('请求出错，请检查网络连接', 'error')
-      });
+      postJson('{{ server_url }}/api/login/send-code', {
+        mobile: phoneInput.value,
+        geeTestData: JSON.stringify(result),
+      }, headers)
+        .then(res => showToast(res.success ? '验证码已发送' : '验证码发送失败 : ' + res.msg, res.success ? 'success' : 'error'))
+        .catch(() => showToast('请求出错，请检查网络连接', 'error'));
     }).onError(function () {
       showToast('请求出错，请检查网络连接', 'error');
     })
@@ -436,14 +444,9 @@
       auth: "{{ auth }}"
     }
     e.preventDefault();
-    $.ajax({
-      url: '{{ server_url }}/api/login/verify',
-      type: 'POST',
-      data: JSON.stringify(data),
-      contentType: 'application/json',
-      success: res => res.success ? showSuccessModal(res) : showToast('登录失败' + (res.msg ? ' : ' + res.msg : '，请重试'), 'error'),
-      error: () => showToast('登录失败，请重试', 'error')
-    });
+    postJson('{{ server_url }}/api/login/verify', data)
+      .then(res => res.success ? showSuccessModal(res) : showToast('登录失败' + (res.msg ? ' : ' + res.msg : '，请重试'), 'error'))
+      .catch(() => showToast('登录失败，请重试', 'error'));
   });
 
 
