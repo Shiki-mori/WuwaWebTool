@@ -53,14 +53,10 @@ async def send_sms_code(request: Request):
         body = await request.json()
         mobile = body.get("mobile", "")
         gee_test_data = body.get("geeTestData", "")
-        logger.info(f"[send-code] JSON body: mobile={mobile}, has_geeTest={bool(gee_test_data)}")
     else:
         form = await request.form()
         mobile = form.get("mobile", "")
         gee_test_data = form.get("geeTestData", "")
-        logger.info(f"[send-code] Form body: mobile={mobile}, has_geeTest={bool(gee_test_data)}")
-        if gee_test_data:
-            logger.info(f"[send-code] geeTestData first 100 chars: {str(gee_test_data)[:100]}")
 
     if not mobile:
         return {"success": False, "msg": "手机号不能为空"}
@@ -89,7 +85,7 @@ async def send_sms_code(request: Request):
                 timeout=aiohttp.ClientTimeout(total=15),
             ) as resp:
                 raw_text = await resp.text()
-                logger.info(f"[send-code] Kuro response: status={resp.status}, body={raw_text[:500]}")
+                logger.info(f"[send-code] Kuro response: status={resp.status}")
 
                 try:
                     result = json.loads(raw_text)
@@ -99,7 +95,7 @@ async def send_sms_code(request: Request):
 
                 code = result.get("code", -1)
                 msg = result.get("msg", "")
-                logger.info(f"[send-code] Kuro result: code={code}, msg={msg}")
+                logger.info(f"[send-code] Kuro result: code={code}")
 
                 if code in (0, 200):
                     return {"success": True, "msg": "验证码已发送"}

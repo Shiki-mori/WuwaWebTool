@@ -6,6 +6,7 @@ import type { StoredAuth } from '@/types/auth'
 import type { ApiResponse, RoleAccount, AccountInfo, CalabashData } from '@/types/api'
 import type { CharacterEntry, CharacterDetail } from '@/types/character'
 import type { ScoreData } from '@/types/scoring'
+import type { SignInResult } from '@/types/signin'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -88,12 +89,14 @@ export function cacheSetScore(charId: string, data: ScoreData): void {
 // ─── API calls ───
 export async function apiCall<T = unknown>(
   endpoint: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<ApiResponse<T>> {
   const r = await fetch(API_BASE + endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal,
   })
   if (!r.ok) throw new Error(`API ${r.status}`)
   return r.json() as Promise<ApiResponse<T>>
@@ -110,6 +113,20 @@ export async function apiRefreshData(): Promise<ApiResponse> {
 
 export async function apiGetRoleList(): Promise<ApiResponse<RoleAccount[]>> {
   return apiCall('/api/game/role-list', authBody())
+}
+
+export async function apiGameSignIn(submit = false): Promise<SignInResult> {
+  const { uid, token, did } = getStoredAuth()
+  const controller = new AbortController()
+  // A write can take four upstream requests (role, calendar, sign, calendar), each capped at 10s.
+  const timeout = setTimeout(() => controller.abort(), 45_000)
+  try {
+    return await apiCall(submit ? '/api/game/sign-in' : '/api/game/sign-in/status', {
+      uid: uid || '', token: token || '', did: did || '',
+    }, controller.signal) as SignInResult
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 export async function apiGetRoleData(): Promise<ApiResponse<CharacterEntry[]>> {

@@ -118,7 +118,7 @@ def check_send_master_info(code: int, msg: str, data: Optional[T] = None) -> boo
     import inspect
 
     callers = [f.function for f in inspect.stack()[5:8][::-1]]
-    logger.warning(f"[鸣潮·UID工具] {'.'.join(callers)} code: {code} msg: {msg} data: {data}")
+    logger.warning(f"[鸣潮·UID工具] {'.'.join(callers)} code: {code}")
     return isinstance(msg, str) and msg != ""
 
 

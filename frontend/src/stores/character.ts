@@ -65,7 +65,8 @@ export const useCharacterStore = defineStore('character', () => {
   function populateAccountSelect() {
     const authStore = useAuthStore()
     const curUid = authStore.auth.uid
-    if (!curUid && roleAccounts.value.length > 0) {
+    roleAccounts.value = roleAccounts.value.filter((role) => role.gameId == null || String(role.gameId) === '3')
+    if (!roleAccounts.value.some((role) => String(role.roleId) === curUid) && roleAccounts.value.length > 0) {
       const first = roleAccounts.value[0]
       storeAuth(null, null, String(first.roleId), null)
       authStore.restoreFromStorage()
@@ -108,16 +109,9 @@ export const useCharacterStore = defineStore('character', () => {
               rl = rd.list as unknown as RoleAccount[]
             }
             if (rl.length > 0) {
-              roleAccounts.value = rl
-              cacheSet('roleAccounts', rl)
+              roleAccounts.value = rl.filter((role) => role.gameId == null || String(role.gameId) === '3')
+              cacheSet('roleAccounts', roleAccounts.value)
               populateAccountSelect()
-              if (!getStoredAuth().uid) {
-                const gu = String(rl[0].roleId || '')
-                if (gu) {
-                  storeAuth(null, null, gu, null)
-                  useAuthStore().restoreFromStorage()
-                }
-              }
             }
           }
         } catch {

@@ -50,3 +50,7 @@ frontend/node_modules/
 # === Environment / Secrets ===
 .env
 .env.local
+
+# Local upstream source inspection
+.task-references/
+.task-output/

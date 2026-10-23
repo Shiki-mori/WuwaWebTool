@@ -38,21 +38,14 @@ onMounted(async () => {
       请先登录查看角色面板
     </div>
 
-    <!-- Loading -->
-    <LoadingSpinner v-else-if="charStore.loading" />
-
-    <!-- Error -->
-    <div
-      v-else-if="charStore.error"
-      class="error-box"
-      style="display:block;padding:12px 16px;"
-      v-html="charStore.error"
-    ></div>
-
     <!-- Main Layout -->
     <div v-else class="page-layout">
       <Sidebar />
-      <MainContent />
+      <LoadingSpinner v-if="charStore.loading" />
+      <div v-else-if="charStore.error" class="error-box" style="display:block;padding:12px 16px;">
+        {{ charStore.error }}
+      </div>
+      <MainContent v-else />
     </div>
   </main>
 </template>

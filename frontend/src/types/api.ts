@@ -7,8 +7,10 @@ export interface ApiResponse<T = unknown> {
 
 /** Role list entry from /api/game/role-list */
 export interface RoleAccount {
-  roleId: number
+  roleId: number | string
   roleName: string
+  gameId?: number | string
+  serverId?: string
 }
 
 /** Role list response */

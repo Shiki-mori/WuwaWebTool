@@ -1069,6 +1069,8 @@ class WavesApi:
         data: Optional[Dict[str, Any]] = None,
         max_retries: int = 3,
         retry_delay: float = 1.0,
+        strict_response: bool = False,
+        allow_captcha: bool = True,
     ) -> KuroApiResp[Union[str, Dict[str, Any], List[Any]]]:
         if header is None:
             header = await get_base_header()
@@ -1090,11 +1092,20 @@ class WavesApi:
                 proxy=proxy_url,
                 timeout=ClientTimeout(total=10),
             ) as resp:
+                if strict_response:
+                    resp.raise_for_status()
                 try:
                     raw_data = await resp.json()
                 except ContentTypeError:
                     _raw_data = await resp.text()
                     raw_data = {"code": WAVES_CODE_999, "data": _raw_data}
+
+                if strict_response and (
+                    not isinstance(raw_data, dict)
+                    or type(raw_data.get("code")) is not int
+                    or (raw_data.get("code") in (0, 200) and raw_data.get("success") is False)
+                ):
+                    raise ValueError("Invalid Kuro response")
 
                 if isinstance(raw_data, dict):
                     try:
@@ -1102,7 +1113,8 @@ class WavesApi:
                     except Exception:
                         pass
 
-                logger.debug(f"[鸣潮·API] url:[{url}] params:[{params}] headers:[{header}] data:[{req_data}] raw_data:{raw_data}")
+                # Never log headers, request bodies or upstream payloads containing credentials.
+                logger.debug(f"[鸣潮·API] url:[{url}] code:{raw_data.get('code') if isinstance(raw_data, dict) else 'invalid'}")
                 # 统一解析为 KuroApiResp
                 return KuroApiResp[Any].model_validate(raw_data)
 
@@ -1127,7 +1139,7 @@ class WavesApi:
                 response = await do_request(data, client)
 
                 res_data = response.data or {}
-                if self.captcha_solver and isinstance(res_data, dict) and res_data.get("geeTest") is True:
+                if allow_captcha and self.captcha_solver and isinstance(res_data, dict) and res_data.get("geeTest") is True:
                     seccode_data = await solve_captcha()
                     if isinstance(seccode_data, CaptchaResult):
                         seccode_data = seccode_data.model_dump_json()
@@ -1147,11 +1159,11 @@ class WavesApi:
                 return response
 
             except aiohttp.ClientError as e:
-                logger.warning(f"[鸣潮·API] url:[{url}] 网络请求失败, 尝试次数 {attempt + 1}", e)
+                logger.warning(f"[鸣潮·API] url:[{url}] 网络请求失败, 尝试次数 {attempt + 1}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delay)
             except Exception as e:
-                logger.warning(f"[鸣潮·API] url:[{url}] 发生未知错误, 尝试次数 {attempt + 1}", e)
+                logger.warning(f"[鸣潮·API] url:[{url}] 发生未知错误, 尝试次数 {attempt + 1}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delay)
 
