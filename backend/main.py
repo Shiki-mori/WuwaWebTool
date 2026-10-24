@@ -10,6 +10,13 @@ for _key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROX
 # Ensure backend/ is on sys.path so "import core" works
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+if __name__ == "__main__":
+    from core.startup_check import check_startup_port
+
+    _startup_result = check_startup_port(int(os.environ.get("PORT", "8000")))
+    if _startup_result is not None:
+        raise SystemExit(_startup_result)
+
 import asyncio
 import logging
 from contextlib import asynccontextmanager
