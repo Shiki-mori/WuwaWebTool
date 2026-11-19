@@ -18,7 +18,7 @@
 
 ```powershell
 git fetch
-git switch codex/wuwa-game-signin
+git switch main
 git pull --ff-only
 git log --oneline -3          # 记录 HEAD 提交号，应包含 "feat: add Windows daily auto sign-in via Task Scheduler"
 ```

@@ -10,11 +10,11 @@
 - 角色详情和声骸评分重新请求 HTTP 200，显示综合评分及五个声骸分数。保留已有登录，未发送新短信。
 - 前端测试依赖和必要补丁已锁定，最终 TypeScript 检查与生产构建通过，npm audit 为 0 漏洞。
 - 最终健康检查 init_ready=true、init_error=null。最终构建已在原 Chrome 页面刷新确认生效，领取按钮禁用。
-- 交付分支：codex/wuwa-game-signin；不向上游提 PR。用户原有任务书.md 与机器专用 start.bat 保留原样。
+- 交付：开发分支 codex/wuwa-game-signin 已于 2026-11-19 快进合并到 main 并删除；不向上游提 PR。用户原有任务书.md 与机器专用 start.bat 保留原样。
 - 具体实现、可复现命令、上游核查提交、验证结果与限制见 docs/game-signin.md。凭证未保存进记录或提交。
 - 后续修复：上次验收残留后台实例占用 8000 导致用户重复启动 WinError 10048；已关闭残留实例。
 - 新增应用加载前的端口检查，已有本服务时提示复用，其他占用时明确报错，不结束非本任务进程。22 项后端测试通过，实际首次/重复启动通过。
 - 本次端口修复验收进程已清理，8000 端口已释放；下次由用户运行 start.bat 启动。
 - 2026-11-19 新增 Windows 每日自动签到：复用网页登录凭证，DPAPI 加密保存在 backend/data/autosign；计划任务每日运行 backend/autosign.py，服务无需常驻，错过时间开机补跑。
 - 自动签到接口仅限 localhost 直连（拒绝代理头、非回环地址和跨站 Origin）；同 UID 重新登录后页面自动同步凭证；网络错误在单次运行内最多重试 3 次（先查状态，不会重复领取）。
-- Linux 上离线验证：后端 38 项、前端 16 项测试通过，vue-tsc 与生产构建通过。DPAPI、schtasks、pythonw 与真实签到尚待 Windows 本机验收（见 docs/game-signin.md“每日自动签到”）。
+- Linux 上离线验证：后端 38 项、前端 16 项测试通过，vue-tsc 与生产构建通过。2026-11-19 已按 docs/autosign-windows-test.md 在 Windows 本机验收，功能正常。
