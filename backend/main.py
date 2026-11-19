@@ -32,6 +32,7 @@ from api.auth import router as auth_router
 from api.game_data import router as game_data_router
 from api.score import router as score_router
 from api.signin import router as signin_router
+from api.autosign import router as autosign_router
 from login_pages import router as login_pages_router
 
 
@@ -130,6 +131,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/login", tags=["Auth"])
 app.include_router(game_data_router, prefix="/api/game", tags=["Game Data"])
 app.include_router(signin_router, prefix="/api/game", tags=["Game Sign-in"])
+app.include_router(autosign_router, prefix="/api/game/auto-sign", tags=["Game Auto Sign-in"])
 app.include_router(score_router, prefix="/api/score", tags=["Scoring"])
 
 @app.get("/api/health")

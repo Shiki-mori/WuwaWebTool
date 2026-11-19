@@ -7,6 +7,7 @@ import type { ApiResponse, RoleAccount, AccountInfo, CalabashData } from '@/type
 import type { CharacterEntry, CharacterDetail } from '@/types/character'
 import type { ScoreData } from '@/types/scoring'
 import type { SignInResult } from '@/types/signin'
+import type { AutoSignResponse } from '@/types/autosign'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -129,7 +130,36 @@ export async function apiGameSignIn(submit = false): Promise<SignInResult> {
   }
 }
 
-export async function apiGetRoleData(): Promise<ApiResponse<CharacterEntry[]>> {
+// ─── Daily auto sign-in (local Windows only; backend stores DPAPI-encrypted credentials) ───
+const AUTO_SIGN = '/api/game/auto-sign'
+
+async function autoSignFetch(path: string, body?: Record<string, unknown>): Promise<AutoSignResponse> {
+  const controller = new AbortController()
+  // enable/sync verify the login upstream (role list + calendar) before saving.
+  const timeout = setTimeout(() => controller.abort(), 30_000)
+  try {
+    const r = await fetch(API_BASE + AUTO_SIGN + path, body === undefined
+      ? { signal: controller.signal }
+      : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal })
+    if (r.status === 403) throw new Error('forbidden')
+    if (!r.ok) throw new Error(`API ${r.status}`)
+    return await r.json() as AutoSignResponse
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+function autoSignAuth(): Record<string, string> {
+  const { uid, token, did } = getStoredAuth()
+  return { uid: uid || '', token: token || '', did: did || '' }
+}
+
+export const apiAutoSignStatus = () => autoSignFetch('/status')
+export const apiAutoSignEnable = (time: string) => autoSignFetch('/enable', { ...autoSignAuth(), time })
+export const apiAutoSignSync = () => autoSignFetch('/sync', autoSignAuth())
+export const apiAutoSignDisable = () => autoSignFetch('/disable', {})
+
+export async function apiGetRoleData():Promise<ApiResponse<CharacterEntry[]>> {
   return apiCall('/api/game/role-data', authBody())
 }
 

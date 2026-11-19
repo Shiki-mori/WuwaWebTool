@@ -5,7 +5,7 @@
 在本机运行 `start.bat`，打开 `http://localhost:8000`，沿用原来的库街区登录。
 首页左侧“鸣潮游戏签到”会自动查询当前所选 UID 的今日状态。点击“领取游戏签到奖励”完成一次手动签到。
 “刷新状态”只查询，不领取。成功或今日已签到后，领取按钮禁用；北京时间跨日后重新查询。
-没有后台定时任务、社区签到、浏览、点赞、分享、战双签到或补签。
+可选开启“每日自动签到”（仅 Windows 本机），见下文。没有社区签到、浏览、点赞、分享、战双签到或补签。
 
 登录过期时，卡片提供重新登录链接；网络异常或结果不确定时，先点击“刷新状态”。
 卡片独立于角色详情和评分加载，评分资源暂时不可用也不影响签到。
@@ -48,6 +48,8 @@
 & 'D:\DevTools\anaconda3\envs\wuwawebtool\python.exe' -m unittest discover -s tests -v
 ```
 
+自动签到另有 `tests/test_autosign.py`（DPAPI 与 schtasks 以假实现替代）和前端 `tests/AutoSignCard.test.ts`。
+
 在 `frontend` 下：
 
 ```powershell
@@ -80,6 +82,32 @@ npm audit
 并发锁仅作用于同一后端进程，多进程部署仍依赖官方“今日已签到”响应；网络失败不保证请求未到达官方，须先查询状态。
 本次复用已有登录，未发送新短信或重新输入验证码；登录过期等失败路径由离线测试验证。
 本机启动器是原先通过 `.git/info/exclude` 排除的机器专用文件，未改变或提交其绝对路径。
+
+## 每日自动签到（Windows 任务计划程序）
+
+首页左侧“每日自动签到”卡片：选择时间后点击“开启自动签到”。与森空岛工具相同的模式：
+
+- 复用网页当前登录：前端把已有的 `token`/`did`/`uid` 发给本机后端，后端先做一次**只读**状态查询确认可用，再保存。无需再次短信登录。
+- 凭证保存在 `backend/data/autosign/settings.json`（`WUWA_DATA_PATH` 下），`token`、`did` 用 Windows DPAPI 当前用户范围加密；日志和 `last_run.json` 不含凭证。
+- 创建当前用户级计划任务 `WuwaWebTool 鸣潮每日签到`：每天在设定时间用启动服务的同一 Python（优先同目录 `pythonw.exe`，不弹窗）运行 `backend/autosign.py`。网页和服务都不必开着；错过时间（关机/休眠）在恢复后补跑（`StartWhenAvailable`）。
+- 每次运行走与手动按钮相同的 `game_signin(submit=True)`：先查今日状态再写入，已签到不重复领取。网络异常或未知错误在同一次运行内间隔 2、5 分钟重试，最多 3 次；登录过期、需要验证、角色异常不重试。
+- 以后在网页重新登录同一 UID 时，卡片自动调用 `/sync` 更新本机保存的登录信息（凭证有变化时才重新校验）。页面登录其他 UID 时不覆盖，需点击“保存设置”才改绑。
+- 卡片显示计划任务实际触发时间（读取 `schtasks /Query /XML`）、与设置不一致或任务被删时提示；显示上次运行结果。“关闭”会删除计划任务、本机凭证和上次结果。
+- 接口 `/api/game/auto-sign/{status,enable,sync,disable}` 仅接受来自 localhost 的直接请求：带 `X-Forwarded-For` 等代理头、非回环地址、`Origin` 与 `Host` 不一致的请求一律 403。因此 Docker/云平台部署和局域网访问都无法写入凭证；非 Windows 平台卡片不显示。
+- 代码：`backend/core/autosign.py`（DPAPI、存储、任务 XML、运行）、`backend/api/autosign.py`（接口）、`backend/autosign.py`（命令行入口）、`frontend/src/components/index/AutoSignCard.vue`。
+
+命令行（在 `backend` 下，使用 `start.bat` 相同的解释器）：
+
+```powershell
+& 'D:\DevTools\anaconda3\envs\wuwawebtool\python.exe' autosign.py --self-test   # DPAPI、SID、任务计划程序检查，不联网
+& 'D:\DevTools\anaconda3\envs\wuwawebtool\python.exe' autosign.py               # 立即执行一次（与计划任务相同）
+schtasks /Run /TN "WuwaWebTool 鸣潮每日签到"                                         # 让任务计划程序立即触发一次
+```
+
+结果写入 `backend/data/autosign/autosign.log`；退出码 0 为成功/今日已签到/未开启，1 为失败。
+
+限制：Python 解释器或项目目录移动后计划任务路径失效，需在网页点“保存设置”重建。conda 环境被删除同理。
+DPAPI 凭证只能由同一 Windows 用户解密；换用户或重装系统需重新开启。
 
 ## 重复启动与端口占用
 
