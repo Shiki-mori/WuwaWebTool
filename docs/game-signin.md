@@ -106,6 +106,8 @@ schtasks /Run /TN "WuwaWebTool 鸣潮每日签到"                              
 
 结果写入 `backend/data/autosign/autosign.log`；退出码 0 为成功/今日已签到/未开启，1 为失败。
 
+Windows 本机验收步骤（可交给 agent 执行）见 [autosign-windows-test.md](autosign-windows-test.md)。
+
 限制：Python 解释器或项目目录移动后计划任务路径失效，需在网页点“保存设置”重建。conda 环境被删除同理。
 DPAPI 凭证只能由同一 Windows 用户解密；换用户或重装系统需重新开启。
 
